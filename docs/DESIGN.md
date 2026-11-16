@@ -1,6 +1,6 @@
 # term16 — MVP Design
 
-**Status:** Agreed design; MVP implementation in progress in this repository  
+**Status:** Agreed design; MVP implemented in this repository (emulator-tested; real-hardware validation pending)  
 **Date:** 2026-11-15  
 **Tracking:** [gr-dos/term16#1](https://github.com/gr-dos/term16/issues/1)  
 **Repository:** [`gr-dos/term16`](https://github.com/gr-dos/term16), a standalone repository separate from the GR-DOS source tree. This document is the authoritative design. GR-DOS can later include the published executable in its full distribution ([gr-dos/gr-dos#36](https://github.com/gr-dos/gr-dos/issues/36)).
@@ -106,4 +106,4 @@ A **receive-only ZMODEM implementation** is included in the MVP:
 
 ## 10. Open implementation details (not blockers)
 
-Final CLI spellings/defaults; terminal emulation subset; key shortcuts; unsupported flow-control behavior; maximum practical baud rates; default download path; file-collision and partial-download policies; project license. These are implementation choices, not reasons to expand MVP scope.
+Final CLI spellings/defaults; terminal emulation subset; key shortcuts; unsupported flow-control behavior; maximum practical baud rates; default download path; file-collision and partial-download policies; project license. These are implementation choices, not reasons to expand MVP scope. The choices made for version 0.01 are documented in the [README](../README.md): option spellings and defaults, the terminal subset, the key map, flow control, the default download directory (the current directory), and the `.PRT`/`~N` partial-file and collision policies; the license is MIT.
