@@ -1,9 +1,11 @@
 # term16 — MVP Design
 
-**Status:** Agreed design, implementation not started  
+**Status:** Agreed design; MVP implemented in this repository (emulator-tested; real-hardware validation pending)  
 **Date:** 2026-11-15  
-**Tracking:** [gr-dos/gr-dos#38](https://github.com/gr-dos/gr-dos/issues/38)  
-**Repository:** \`term16\` will have its **own GitHub repository**, not live in the GR-DOS source tree. This file and issue are temporary design tracking; GR-DOS will eventually bundle the published executable.
+**Tracking:** [gr-dos/term16#1](https://github.com/gr-dos/term16/issues/1)  
+**Repository:** [`gr-dos/term16`](https://github.com/gr-dos/term16), a standalone repository separate from the GR-DOS source tree. This document is the authoritative design. GR-DOS can later include the published executable in its full distribution ([gr-dos/gr-dos#36](https://github.com/gr-dos/gr-dos/issues/36)).
+
+> **Provenance:** this design was first drafted and agreed in [gr-dos/gr-dos#38](https://github.com/gr-dos/gr-dos/issues/38) and design PR [gr-dos/gr-dos#39](https://github.com/gr-dos/gr-dos/pull/39). Those were temporary planning locations; the PR was closed without merging because the design now lives here. The requirements below are carried over unchanged.
 
 ## 1. Purpose
 
@@ -31,7 +33,7 @@ A lightweight 16-bit DOS serial terminal emulator, roughly Minicom without modem
 
 Both modes are **required**:
 
-1. Running \`term16\` with no arguments opens a simple configuration menu.
+1. Running `term16` with no arguments opens a simple configuration menu.
 2. Arrow keys navigate fields, Enter changes/selects, and Esc backs out.
 3. Menu settings: port, baud, bits/parity/stop, flow control, terminal mode if selectable, and **download directory**.
 4. Command-line options supply the equivalent settings and can start a session directly, without menu interaction.
@@ -40,9 +42,9 @@ Both modes are **required**:
 
 Provisional command syntax, to finalize during implementation:
 
-\`\`\`dos
+```dos
 term16 -p COM1 -b 9600 --data 8 --parity none --stop 1 --flow none --download-dir C:\DOWNLOAD
-\`\`\`
+```
 
 ## 5. Terminal emulation
 
@@ -65,9 +67,9 @@ The bottom screen row should always show the **effective connection configuratio
 
 Example illustrative single-line layout:
 
-\`\`\`text
+```text
 COM1  9600  8N1  Flow:None  ANSI  OPEN          Alt-M Menu  Alt-X Exit
-\`\`\`
+```
 
 Update the bar when settings or state change, regardless of whether settings came from CLI or menu. **Never show the download directory in the status bar**. Do not claim a connection is established merely because the port opened. The remote host must never be able to overwrite the bar.
 
@@ -75,14 +77,14 @@ Update the bar when settings or state change, regardless of whether settings cam
 
 A **receive-only ZMODEM implementation** is included in the MVP:
 
-- Detect valid ZMODEM start sequences from an incoming serial stream (e.g. a Linux \`sz filename\` invocation) and switch automatically from terminal mode to receive mode.
+- Detect valid ZMODEM start sequences from an incoming serial stream (e.g. a Linux `sz filename` invocation) and switch automatically from terminal mode to receive mode.
 - Receive individual files and batches into a configured local download directory.
 - **Download directory configurable both by CLI and by the arrow-key UI.** Document a usable default; fail clearly if unavailable/unwritable.
 - Validate transfer integrity with appropriate ZMODEM CRCs; handle retries and recoverable errors.
 - During transfer show a temporary progress view (filename, bytes/percent, errors/retries). Connection settings can remain visible; **do not display destination directory in persistent status bar**.
 - DOS filename handling: safe basenames and 8.3 fallback as needed, reject sender path traversal/absolute paths, never silently overwrite existing files, and make incomplete files distinguishable.
 - Graceful handling for disk full, transfer failure, cancel, and bad destination; restore ordinary terminal mode and usable serial state afterward. Esc in progress view is a proposed local cancel action.
-- Keep protocol code modular; evaluate small reference implementations but **verify source licenses** before borrowing code. Do not silently import GPL-licensed \`lrzsz\` into a project with an incompatible licensing plan.
+- Keep protocol code modular; evaluate small reference implementations but **verify source licenses** before borrowing code. Do not silently import GPL-licensed `lrzsz` into a project with an incompatible licensing plan.
 
 **Deferred:** ZMODEM sending/upload and interrupted-transfer resumption.
 
@@ -98,10 +100,10 @@ A **receive-only ZMODEM implementation** is included in the MVP:
 
 1. **Serial baseline:** Menu and CLI configure a real COM port and support a stable bidirectional null-modem session on an 8088/8086-era DOS PC; clean exit.
 2. **Terminal and UI:** Basic ANSI/VT100 handling, 80×24 viewport, working menu/navigation, CLI equivalence, and accurate protected bottom status bar.
-3. **ZMODEM receiver:** Automatic receive from Linux \`sz\`, both single- and multiple-file cases; configured destination, CRC/retry, safe names and collisions, cancel/error recovery.
+3. **ZMODEM receiver:** Automatic receive from Linux `sz`, both single- and multiple-file cases; configured destination, CRC/retry, safe names and collisions, cancel/error recovery.
 4. **Hardware/footprint validation:** Test an IBM PS/2 Model 25-class machine where available; exercise 8250-class behavior, monochrome display, slow CPU, higher baud rates, and disk-full/cancel paths. Record measured .EXE/.COM size, conventional memory and limitations.
-5. **Separate release:** Move design and implementation to a dedicated \`term16\` repository, then add its built DOS executable to the full GR-DOS distribution.
+5. **Separate release:** Design and implementation live in this dedicated `gr-dos/term16` repository, which publishes the built DOS executable and license as GitHub release assets. The full GR-DOS distribution can then select it through the `gr-dos/*16` discovery mechanism ([gr-dos/gr-dos#36](https://github.com/gr-dos/gr-dos/issues/36)); it is not added to boot floppies automatically.
 
 ## 10. Open implementation details (not blockers)
 
-Final CLI spellings/defaults; terminal emulation subset; key shortcuts; unsupported flow-control behavior; maximum practical baud rates; default download path; file-collision and partial-download policies; project license. These are implementation choices, not reasons to expand MVP scope.
+Final CLI spellings/defaults; terminal emulation subset; key shortcuts; unsupported flow-control behavior; maximum practical baud rates; default download path; file-collision and partial-download policies; project license. These are implementation choices, not reasons to expand MVP scope. The choices made for version 0.01 are documented in the [README](../README.md): option spellings and defaults, the terminal subset, the key map, flow control, the default download directory (the current directory), and the `.PRT`/`~N` partial-file and collision policies; the license is MIT.

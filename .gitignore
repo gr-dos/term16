@@ -1,0 +1,7 @@
+*.o
+*.obj
+*.err
+*.exe
+*.map
+/build/
+__pycache__/
