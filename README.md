@@ -147,17 +147,18 @@ polled; with `rtscts` it waits for CTS and with `xonxoff` for XON, up to
 two seconds per byte.
 
 Whatever opening the port changed (line settings, divisor, IER, MCR,
-FIFO, PIC mask, interrupt vector) is put back on exit. Ctrl+C is sent
-to the host and Ctrl+Break is ignored, so neither ends the program, and a
-critical disk error fails the DOS call instead of aborting the program
-with the handler still installed.
+FIFO, PIC mask, interrupt vector) is put back on exit; if no UART
+answers the probe, the line control register it wrote is put back at
+once. Ctrl+C is sent to the host and Ctrl+Break is ignored, so neither
+ends the program, and a critical disk error fails the DOS call instead
+of aborting the program with the handler still installed.
 
 ## Size
 
 | | |
 |---|---|
-| `term16.exe` | 22,698 bytes |
-| Memory when loaded | 36,100 bytes (code 18.8 KB, data 12.7 KB with the 4 KB ring buffer, 4 KB stack), plus the PSP |
+| `term16.exe` | 22,748 bytes |
+| Memory when loaded | 36,200 bytes (code 18.8 KB, data 12.7 KB with the 4 KB ring buffer, 4 KB stack), plus the PSP |
 | While running | up to 8 KB more: the DOS screen, kept to restore at exit, and the terminal screen while the menu is open |
 
 (Version 0.01; the map is in `build/term16.map` after `make`.)
@@ -192,7 +193,8 @@ hello16. `make LIBC16_ROOT=../libc16` uses a local libc16 checkout.
 and Ubuntu package `lrzsz`; without it the `sz` test is skipped):
 
 - `tests/unit/unit.c` runs the portable modules (terminal emulation,
-  settings, CRCs, file names) on the build host;
+  settings, CRCs, file names, UART detection against simulated
+  registers) on the build host;
 - `tests/run.sh` (`tests/run.py`) runs `term16.exe` and the test build
   `build/t16test.exe` in a headless DOSBox-X whose COM1 is connected
   over TCP to a scripted remote host: command-line errors, ANSI
@@ -217,6 +219,7 @@ again on a slow emulated 8086. Merging a change to `VERSION` releases
 - `src/main.c`: command line, session loop, cleanup
 - `src/config.c`: settings, their names, the status bar
 - `src/uart.c`: UART, interrupt handler, ring buffer, flow control
+- `src/uprobe.c`: UART detection
 - `src/screen.c`: video memory, cursor, speaker, keyboard, clock (and
   the test keyboard)
 - `src/term.c`: ANSI/VT100 emulation

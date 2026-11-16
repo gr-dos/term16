@@ -5,6 +5,7 @@
  *   main.c    command line, session loop, cleanup
  *   config.c  settings, their names and the status bar text (portable)
  *   uart.c    8250/16450/16550 UART, IRQ handler, receive ring buffer
+ *   uprobe.c  UART detection (portable)
  *   screen.c  text video memory, cursor, speaker, keyboard, clock
  *   term.c    ANSI/VT100 parser and renderer (portable)
  *   cp437.c   UTF-8 to code page 437 (portable)
@@ -85,6 +86,12 @@ void uart_drain(void);                  /* wait until sent */
 extern unsigned long uart_overruns;     /* bytes lost: ring or UART full */
 extern volatile unsigned uart_received;
 extern const char *uart_error;
+
+/* uprobe.c */
+typedef unsigned char (*port_in_fn)(unsigned port);
+typedef void (*port_out_fn)(unsigned port, unsigned char v);
+int  uart_probe(unsigned base, port_in_fn in, port_out_fn out,
+                unsigned char *old_lcr);        /* 0, or -1 if none */
 
 /* ------------------------------------------------------------------ */
 /* screen.c (and the keyboard and the clock) */

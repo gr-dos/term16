@@ -29,14 +29,15 @@ LDOPTS = option quiet, nodefaultlibs, stack=4096
 HOSTCC     = cc
 HOSTCFLAGS = -std=c89 -pedantic -Wall -Wextra -Werror -O1 -Isrc
 
-NAMES   = main config uart screen term cp437 menu zmodem zmcrc dlname dosfile
+NAMES   = main config uart uprobe screen term cp437 menu zmodem zmcrc dlname dosfile
 HEADERS = src/term16.h
 OBJS    = $(NAMES:%=build/obj/%.obj)
 # Built again with -DTERM16_TEST for build/t16test.exe
 T_NAMES = screen dosfile
 T_OBJS  = $(filter-out $(T_NAMES:%=build/obj/%.obj),$(OBJS)) \
           $(T_NAMES:%=build/obj/%_t.obj)
-PORTABLE = src/config.c src/term.c src/cp437.c src/zmcrc.c src/dlname.c
+PORTABLE = src/config.c src/term.c src/cp437.c src/zmcrc.c src/dlname.c \
+           src/uprobe.c
 
 all: term16.exe
 

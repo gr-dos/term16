@@ -334,6 +334,57 @@ static void test_names(void)
     CHECK(strcmp(path, "C:\\DL\\X.TXT") == 0);
 }
 
+/* uprobe.c, against simulated I/O ports.  The LCR at port 0x103 reads
+ * back (written & keep) | stuck; every LCR write is recorded. */
+static unsigned char lcr_now, lcr_keep, lcr_stuck;
+static int lcr_writes;
+
+static unsigned char fake_in(unsigned port)
+{
+    return port == 0x103 ? (unsigned char)((lcr_now & lcr_keep) | lcr_stuck)
+                         : 0xFF;
+}
+
+static void fake_out(unsigned port, unsigned char v)
+{
+    if (port == 0x103) {
+        lcr_now = v;
+        lcr_writes++;
+    }
+}
+
+static int probe(unsigned char start, unsigned char keep,
+                 unsigned char stuck, unsigned char *old)
+{
+    lcr_now = start;
+    lcr_keep = keep;
+    lcr_stuck = stuck;
+    lcr_writes = 0;
+    return uart_probe(0x100, fake_in, fake_out, old);
+}
+
+static void test_probe(void)
+{
+    unsigned char old;
+
+    /* A UART: the old LCR is kept for uart_close, 8N1 is left set */
+    CHECK(probe(0x07, 0xFF, 0x00, &old) == 0);
+    CHECK(old == 0x07 && lcr_now == 0x03);
+
+    /* A register that ignores writes: fails at the first readback,
+     * and what was there is written back */
+    CHECK(probe(0x07, 0x00, 0x45, &old) == -1);
+    CHECK(old == 0x45 && lcr_now == 0x45 && lcr_writes == 2);
+
+    /* Bits stuck at 1: 1Bh reads back but 03h does not */
+    CHECK(probe(0x1B, 0xFF, 0x18, &old) == -1);
+    CHECK(old == 0x1B && lcr_now == 0x1B && lcr_writes == 3);
+
+    /* Bits stuck at 0: fails at the first readback, LCR restored */
+    CHECK(probe(0x03, 0x07, 0x00, &old) == -1);
+    CHECK(lcr_now == 0x03 && lcr_writes == 2);
+}
+
 int main(void)
 {
     test_term();
@@ -341,6 +392,7 @@ int main(void)
     test_config();
     test_crc();
     test_names();
+    test_probe();
     printf("%d checks, %d failed\n", checks, failures);
     return failures != 0;
 }

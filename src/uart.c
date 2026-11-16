@@ -43,6 +43,17 @@ void cli(void);
 void sti(void);
 #pragma aux sti = "sti" modify exact [];
 
+/* For uart_probe, which takes the port access as functions */
+static unsigned char port_in(unsigned port)
+{
+    return inb(port);
+}
+
+static void port_out(unsigned port, unsigned char v)
+{
+    outb(port, v);
+}
+
 static const unsigned default_base[4] = { 0x3F8, 0x2F8, 0x3E8, 0x2E8 };
 
 static unsigned char rxbuf[RX_SIZE];
@@ -136,16 +147,7 @@ int uart_open(const struct config *c)
         base = default_base[c->port - 1];
     irq = (c->port & 1) ? 4 : 3;
 
-    /* Is there a UART?  LCR reads back what was written. */
-    old_lcr = inb(base + LCR);
-    outb(base + LCR, 0x1B);
-    if (inb(base + LCR) != 0x1B) {
-        uart_error = "no serial port at that address";
-        return -1;
-    }
-    outb(base + LCR, 0x03);
-    if (inb(base + LCR) != 0x03) {
-        outb(base + LCR, old_lcr);
+    if (uart_probe(base, port_in, port_out, &old_lcr) < 0) {
         uart_error = "no serial port at that address";
         return -1;
     }
