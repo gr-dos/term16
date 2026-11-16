@@ -122,7 +122,9 @@ the box cancels the transfer.
 - **Partial files:** each file is written as `NAME.PRT` and renamed to
   its final name only when complete. If a transfer is cancelled, the
   disk fills or the sender stops, the `.PRT` file is kept (removed if
-  empty) and the box says so.
+  empty) and the box says so. A file that is complete but cannot be
+  given its final name is not counted as received: it is kept as
+  `.PRT`, the transfer is cancelled and the box says so.
 - **Errors:** a missing download directory, a full disk or a file that
   cannot be created cancel the transfer with a message; the terminal and
   serial port stay usable.
@@ -154,8 +156,8 @@ with the handler still installed.
 
 | | |
 |---|---|
-| `term16.exe` | 22,548 bytes |
-| Memory when loaded | 36,000 bytes (code 18.7 KB, data 12.6 KB with the 4 KB ring buffer, 4 KB stack), plus the PSP |
+| `term16.exe` | 22,698 bytes |
+| Memory when loaded | 36,100 bytes (code 18.8 KB, data 12.7 KB with the 4 KB ring buffer, 4 KB stack), plus the PSP |
 | While running | up to 8 KB more: the DOS screen, kept to restore at exit, and the terminal screen while the menu is open |
 
 (Version 0.01; the map is in `build/term16.map` after `make`.)
@@ -195,8 +197,10 @@ and Ubuntu package `lrzsz`; without it the `sz` test is skipped):
   `build/t16test.exe` in a headless DOSBox-X whose COM1 is connected
   over TCP to a scripted remote host: command-line errors, ANSI
   rendering and the protected status bar, keys, the menu, downloads
-  from `sz`, hostile names, CRC errors, cancels and Esc. The test build
-  reads keys from a file and writes screen dumps (`src/screen.c`).
+  from `sz`, hostile names, CRC errors, cancels, a failed rename and
+  Esc. The test build reads keys from a file and writes screen dumps
+  (`src/screen.c`), and fails renames when `T16NOREN` is set
+  (`src/dosfile.c`).
   `DOSBOX=` selects the emulator (for example a wrapper that adds
   `-set cputype=8086`), `ZBAUD=` the speed of the `sz` test, `KEEP=1`
   keeps the work directories and `ONLY=name` runs some tests.

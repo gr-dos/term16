@@ -493,6 +493,7 @@ static unsigned char buf[BUF_MAX + 1];
 static const char *fail_msg;
 static char part_path[DIR_MAX + 14], part_name[13];
 static char base[10], ext[4];
+static unsigned char part_complete;     /* the kept .PRT is all there */
 
 static void why(int r)
 {
@@ -589,11 +590,18 @@ static int receive_file(const struct config *c, unsigned n)
             if (hdr_pos(hdr) != pos)
                 continue;               /* stale; data still to come */
             close(fd);
-            if (dl_unique(c->dldir, base, ext, df_exists, final) == 0) {
-                dl_join(path, c->dldir, final);
-                if (df_rename(part_path, path) == 0)
-                    strcpy(shown_name, final);
+            /* Count the file only once it has its final name; if it
+             * cannot get one, keep the complete .PRT and stop. */
+            if (dl_unique(c->dldir, base, ext, df_exists, final) < 0) {
+                fail_msg = "No unused name for the received file.";
+                goto fail_renamed;
             }
+            dl_join(path, c->dldir, final);
+            if (df_rename(part_path, path) < 0) {
+                fail_msg = "Cannot rename the received file.";
+                goto fail_renamed;
+            }
+            strcpy(shown_name, final);
             files++;
             show_file();
             show_progress();
@@ -637,6 +645,12 @@ fail_quiet:
     else
         strcpy(shown_name, part_name);
     return -1;
+
+fail_renamed:
+    send_cancel();
+    part_complete = 1;
+    strcpy(shown_name, part_name);
+    return -1;
 }
 
 void zm_receive(const struct config *c)
@@ -649,6 +663,7 @@ void zm_receive(const struct config *c)
     files = errors = 0;
     shown_name[0] = sender_name[0] = '\0';
     part_name[0] = '\0';
+    part_complete = 0;
     pos = size = 0;
     have_size = 0;
     fail_msg = NULL;
@@ -757,7 +772,8 @@ done:
     } else {
         show_status("Failed: ", fail_msg);
         if (part_name[0] != '\0' && strcmp(shown_name, part_name) == 0) {
-            strcpy(line, "Incomplete file kept as ");
+            strcpy(line, part_complete ? "Received file kept as " :
+                                         "Incomplete file kept as ");
             strcat(line, part_name);
             box_line(6, line);
         }

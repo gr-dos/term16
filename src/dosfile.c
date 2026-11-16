@@ -1,5 +1,8 @@
 /*
  * dosfile.c - files and directories for downloads
+ *
+ * In the test build (-DTERM16_TEST) df_rename fails when %T16NOREN% is
+ * set, so tests/run.py can check what a failed final rename does.
  */
 
 #include <dos.h>
@@ -39,6 +42,10 @@ int df_rename(const char *from, const char *to)
     union REGS r;
     struct SREGS s;
 
+#ifdef TERM16_TEST
+    if (getenv("T16NOREN") != NULL)
+        return -1;
+#endif
     segread(&s);
     s.es = s.ds;
     r.h.ah = 0x56;

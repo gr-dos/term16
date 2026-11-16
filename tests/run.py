@@ -289,6 +289,13 @@ def zsend(r, files, corrupt_at=None, cancel_at=None, slow=0.0):
                 r.send(subpacket(b"", b"h"))
             break
         r.send(hexhdr(ZEOF, len(data)))
+        end = time.time() + 30
+        while b"**\x18B" not in r.buf and b"\x18" * 5 not in r.buf:
+            if time.time() > end:
+                raise AssertionError("no answer to ZEOF")
+            r.read()
+        if b"**\x18B" not in r.buf:
+            return "receiver cancelled"
         t, _ = read_hex_header(r)
         assert t == ZRINIT, "wanted ZRINIT after ZEOF, got %d" % t
     r.send(hexhdr(ZFIN))
@@ -626,6 +633,38 @@ def zmodem_errors():
     check("third" in "\n".join(s[2]), "terminal after a dead sender")
     for sc in s:
         check(sc[24] == status_line(baud="115200"), "status: %r" % sc[24])
+    return work
+
+
+@test
+def zmodem_rename():
+    """A file that cannot get its final name is kept whole as .PRT."""
+    data = make_data(3000, 5)
+
+    def remote(r, work):
+        r.expect("go\r")
+        got = zsend(r, [("ren.bin", data), ("next.bin", data)])
+        check(got == "receiver cancelled", "rename failure cancels: %s" % got)
+        time.sleep(2)
+        r.send("\r\nafter\r\n")
+
+    k = keys("go\r", IDLE, PAUSE, DUMP, "x", ZDONE, IDLE, DUMP, ALT_X)
+    work, err = run_dos(["md DL", "set T16KEYS=C:\\K.BIN", "set T16NOREN=1",
+                         "T16TEST -p 1 -b 115200 -d DL"],
+                        files={"T16TEST.EXE": TEXE, "K.BIN": k},
+                        remote=remote, name="rename")
+    check(err is None, err)
+    check(read(work, "DL/REN.PRT") == data, "complete file kept as REN.PRT")
+    check(read(work, "DL/REN.BIN") is None, "no REN.BIN")
+    check(read(work, "DL/NEXT.PRT") is None, "batch stopped")
+    s = screens(work)
+    check(len(s) == 2, "2 dumps, got %d" % len(s))
+    box = "\n".join(s[0])
+    check("Cannot rename the received file" in box, "message: %s" % box)
+    check("Received file kept as REN.PRT" in box, "kept name shown")
+    check("Saved as" not in box, "not reported as saved")
+    check("Files done: 0" in box, "not counted: %s" % box)
+    check("after" in "\n".join(s[1]), "terminal after the failure")
     return work
 
 

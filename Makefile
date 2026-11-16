@@ -7,8 +7,9 @@
 # term16.exe is compiled and linked against libc16 only (its ABI is in
 # libc16's docs/ABI.md), with the Open Watcom snapshot libc16 was built
 # with: the libc16 tree's tools/fetch-watcom fetches it into build/tools.
-# build/t16test.exe is the same program with the test keyboard and
-# screen dumps of src/screen.c (-DTERM16_TEST), for tests/run.py.
+# build/t16test.exe is the same program with the test hooks of
+# src/screen.c (keyboard, screen dumps) and src/dosfile.c (a failing
+# rename), built with -DTERM16_TEST, for tests/run.py.
 
 LIBC16_ROOT ?= build/libc16
 # A release tree, or a checkout, whose make stages the same layout in
@@ -31,7 +32,10 @@ HOSTCFLAGS = -std=c89 -pedantic -Wall -Wextra -Werror -O1 -Isrc
 NAMES   = main config uart screen term cp437 menu zmodem zmcrc dlname dosfile
 HEADERS = src/term16.h
 OBJS    = $(NAMES:%=build/obj/%.obj)
-T_OBJS  = $(filter-out build/obj/screen.obj,$(OBJS)) build/obj/screen_t.obj
+# Built again with -DTERM16_TEST for build/t16test.exe
+T_NAMES = screen dosfile
+T_OBJS  = $(filter-out $(T_NAMES:%=build/obj/%.obj),$(OBJS)) \
+          $(T_NAMES:%=build/obj/%_t.obj)
 PORTABLE = src/config.c src/term.c src/cp437.c src/zmcrc.c src/dlname.c
 
 all: term16.exe
@@ -48,9 +52,9 @@ build/obj/%.obj: src/%.c $(HEADERS) VERSION $(LIBC16) $(TOOLS_ENV)
 	mkdir -p build/obj
 	$(WATCOM_ENV) && $(CC) $(CFLAGS) -fo=$@ $<
 
-build/obj/screen_t.obj: src/screen.c $(HEADERS) VERSION $(LIBC16) $(TOOLS_ENV)
+build/obj/%_t.obj: src/%.c $(HEADERS) VERSION $(LIBC16) $(TOOLS_ENV)
 	mkdir -p build/obj
-	$(WATCOM_ENV) && $(CC) $(CFLAGS) -DTERM16_TEST -fo=$@ src/screen.c
+	$(WATCOM_ENV) && $(CC) $(CFLAGS) -DTERM16_TEST -fo=$@ $<
 
 # The pinned libc16 release (scripts/fetch-libc16). A LIBC16_ROOT given
 # on the command line must already be built.
